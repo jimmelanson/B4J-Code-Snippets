@@ -1,0 +1,83 @@
+
+
+
+Sub setObjectText(tt As TextField, strValue As String) As String
+    tt.Text = strValue
+End Sub
+
+Sub setObjectLabel(lab As Label, strValue As String) As String
+    lab.Text = strValue
+End Sub
+
+
+
+
+		Dim readMap As Map
+		readMap.Initialize
+		Dim dataList As List
+		Dim strLine As String
+		Dim strThisKey As String
+		Dim strThisValue As String
+		dataList = File.ReadList(strPath, strFile)
+		For i = 0 To dataList.Size - 1
+			strLine = dataList.Get(i)
+			strThisKey = strLine.SubString2(0, strLine.IndexOf("|"))
+			strThisValue = strLine.SubString(strLine.IndexOf("|") + 1)
+			If strThisValue = "" Then
+				If Regex.IsMatch("count", strThisKey) = True Then
+					strThisValue = 0
+				End If
+			End If
+			If strThisKey.Length > 0 And strThisValue.Length > 0 Then
+			    readMap.Put(strThisKey, strThisValue)
+			End If
+		Next
+		For Each mapkey As String In mapFormObjects.Keys
+			If mapkey.SubString2(0, 3) = "lbl" Then
+				If readMap.ContainsKey(mapkey) = True Then
+				    setObjectLabel(mapFormObjects.Get(mapkey), readMap.Get(mapkey))
+				End If
+			Else If mapkey.SubString2(0,3) = "txt" Then
+				If readMap.ContainsKey(mapkey) = True Then
+				    setObjectText(mapFormObjects.Get(mapkey), readMap.Get(mapkey))
+				End If
+			End If
+		Next
+        
+        
+        
+        
+        
+        
+        
+        
+Sub readObjectText(tt As TextField) As String
+    Return tt.Text
+End Sub
+
+Sub readObjectLabel(lab As Label) As String
+    Return lab.Text
+End Sub
+
+
+    		Dim listWrite As List
+    		listWrite.Initialize
+			For Each mapkey As String In mapFormObjects.Keys
+				If mapkey.SubString2(0, 3) = "lbl" Then
+					listWrite.Add(mapkey & "|" & readObjectLabel(mapFormObjects.Get(mapkey)))
+				Else If mapkey.SubString2(0,3) = "txt" Then
+					listWrite.Add(mapkey & "|" & readObjectText(mapFormObjects.Get(mapkey)))
+				End If
+			Next
+			File.WriteList(strPath, strFileName, listWrite)
+            
+            
+            
+            
+            
+            
+            
+            
+
+
+
