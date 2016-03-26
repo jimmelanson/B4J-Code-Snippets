@@ -1,0 +1,76 @@
+
+
+Sub Process_Globals
+    Private fx As JFX
+    Private MainForm As Form
+    Dim t As TextField
+    Dim lis As List
+End Sub
+
+
+Sub AppStart (Form1 As Form, Args() As String)
+    MainForm = Form1
+    MainForm.SetFormStyle("UNIFIED")
+    MainForm.Show
+	listObjectsLabel.Initialize
+	listObjectsLabel.Add("lblCalcCount1")
+	listObjectsLabel.Add("lblCalcCount2")
+	listObjectsLabel.Add("lblCalcCount3")
+	listObjectsText.Initialize
+	listObjectsText.Add("txtProfileName1")
+	listObjectsText.Add("txtCountProfile1_total")
+	listObjectsText.Add("txtCountProfile1_leave")
+	listObjectsText.Add("txtCountProfile1_other")
+	listObjectsText.Add("txtProfileName2")
+	listObjectsText.Add("txtCountProfile2_total")
+	listObjectsText.Add("txtCountProfile2_leave")
+	listObjectsText.Add("txtCountProfile2_other")
+	listObjectsText.Add("txtProfileName3")
+	listObjectsText.Add("txtCountProfile3_total")
+	listObjectsText.Add("txtCountProfile3_leave")
+	listObjectsText.Add("txtCountProfile3_other")
+End Sub
+
+Sub readObjectText(tt As TextField, strRead As String) As String
+	If strRead = "Name" Then
+        Return tt.Name
+	Else
+        Return tt.Text
+	End If
+End Sub
+
+Sub readObjectLabelText(lab As Label, strRead As String) As String
+	If strRead = "Name" Then
+        Return lab.Name
+	Else
+        Return lab.Text
+	End If
+End Sub
+
+Sub Savedata(strPath As String, strFileName As String)
+	If strPath <> "" And strFileName <> "" Then
+		If File.IsDirectory(strPath, strFileName) = False Then
+    		Dim listWrite As List
+    		listWrite.Initialize
+            For Each item As Object In listObjectsLabel
+                listWrite.Add(item & "|" & readObjectLabel(item))
+            Next	
+            For Each item As Object In listObjectsText
+                listWrite.Add(item & "|" & readObjectText(item))
+            Next	
+			File.WriteList(strPath, strFileName, listWrite)
+        Else
+            'Report exception
+        End If
+    Else
+        'report exception
+    End If
+End If
+
+
+            
+			
+			
+
+
+
