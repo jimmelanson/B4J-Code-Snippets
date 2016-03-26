@@ -1,0 +1,169 @@
+
+'This subroutine takes the file either opened or saved and writes it to
+'the recent items file. I add the file path and name to a Map to make sure
+'I don't have duplicates without specifically testing each one. I use a pipe
+'delimeter as that's what I'm used to. I want the flexibility of changing how
+'I express the file name as well. Either that, or I could also extract the
+'filepath and filename, I did what I was comfortable with for now, to get it working.
+Sub SaveRecentItems(strPath As String, strFile As String)
+	Dim recentItemsMap As Map
+	recentItemsMap.Initialize
+    recentItemsMap.Put(strPath & "|" & strFile, "1")
+	If File.IsDirectory(GetDataFolder("ScheduleCounter"), "recentitems.lib") = False Then
+		If File.Exists(GetDataFolder("ScheduleCounter"), "recentitems.lib") = True Then
+			Dim recentItemsList As List
+			recentItemsList.Initialize
+			recentItemsList = ReadRecentItemsList
+			If recentItemsList.Size > 0 Or recentItemsList.Get(0) <> "" Then
+				For i = 0 To recentItemsList.Size - 1
+					recentItemsMap.Put(recentItemsList.Get(i), "1")
+				Next
+				
+			End If
+		End If
+	End If
+    Dim listWrite As List
+    listWrite.Initialize
+	For Each mapkey As String In recentItemsMap.Keys
+		listWrite.Add(mapkey)
+	Next
+	File.WriteList(GetDataFolder("ScheduleCounter"), "recentitems.lib", listWrite)
+End Sub
+
+'Just retrieves the list as I do that in a couple of places. Inherent laziness.
+Sub ReadRecentItemsList() As List
+	Dim recentList As List
+	recentList.Initialize
+	If File.IsDirectory(GetDataFolder("ScheduleCounter"), "recentitems.lib") = False Then
+		If File.Exists(GetDataFolder("ScheduleCounter"), "recentitems.lib") = True Then
+			recentList = File.ReadList(GetDataFolder("ScheduleCounter"), "recentitems.lib")
+		End If
+	End If
+	Return recentList
+End Sub
+
+'When the app loads, I clean up the list by removing anyting the user has deleted. I'll be adding a "Delete Profile" later today.
+Sub cleanupRecentItems
+	Dim listWrite As List
+	listWrite.Initialize
+	listWrite.Clear
+	Dim recentFilesList As List
+	recentFilesList.Initialize
+	recentFilesList = ReadRecentItemsList
+	Dim strLine As String
+	Dim strLinePath As String
+	Dim strLineName As String
+	For i = 0 To recentFilesList.Size - 1
+	    If recentFilesList.Get(i) <> "" Then
+			strLine = recentFilesList.Get(i)
+			If strLine.IndexOf("|") > 0 Then
+				strLinePath = strLine.SubString2(0, strLine.IndexOf("|"))
+				strLineName = strLine.SubString(strLine.IndexOf("|") + 1)
+				If strLinePath <> "" And strLineName <> "" Then
+					If File.Exists(strLinePath, strLineName) = True Then
+						listWrite.Add(strLine)
+					End If
+				End If
+			End If
+	    End If
+	Next 
+	If listWrite.Get(0) <> "" Then
+	    File.WriteList(GetDataFolder("ScheduleCounter"), "recentitems.lib", listWrite)
+	Else
+		File.Delete(GetDataFolder("ScheduleCounter"), "recentitems.lib")
+	End If
+End Sub
+
+'This is what saves the last file opened or created to the recent items list.
+Sub SaveLastFile(strPath As String, strFile As String)
+    Dim listWrite As List
+    listWrite.Initialize
+	listWrite.Add(strPath & "|" & strFile)
+	File.WriteList(GetDataFolder("ScheduleCounter"), "lastfile.lib", listWrite)
+End Sub
+
+'From rwblinn, with slight mods
+Sub AddRecentItem(menuidx As Int, strPathName As String, strFileName As String)
+    Dim filesmenu As Menu = MenuBar1.Menus.Get(menuidx)
+    Dim recentfilemenuitem As MenuItem
+	recentfilemenuitem.Initialize(strFileName,"recentfilesmenu")
+    recentfilemenuitem.Tag = strPathName
+    recentfilemenuitem.Text = strFileName
+    filesmenu.MenuItems.Add(recentfilemenuitem)
+End Sub
+
+'From rwblinn, with a lot of mods. It reads in the recent items from the file then adds them to the menu.
+Sub AddAllRecentItems
+	'Call this from AppInit
+	cleanupRecentItems
+	Dim recentFilesList As List
+	recentFilesList.Initialize
+	recentFilesList = ReadRecentItemsList
+	Dim subMenuRecentFileNames(recentFilesList.Size + 1) As String
+	Dim subMenuRecentFilePath(recentFilesList.Size + 1) As String
+	Dim strLine As String
+	Dim strLinePath As String
+	Dim strLineName As String
+	For i = 0 To recentFilesList.Size - 1
+	    If recentFilesList.Get(i) <> "" Then
+			strLine = recentFilesList.Get(i)
+			If strLine.IndexOf("|") > 0 Then
+				strLinePath = strLine.SubString2(0, strLine.IndexOf("|"))
+				strLineName = strLine.SubString(strLine.IndexOf("|") + 1)
+				If strLinePath <> "" And strLineName <> "" Then
+					If File.Exists(strLinePath, strLineName) = True Then
+				        subMenuRecentFileNames(i) = strLineName
+						subMenuRecentFilePath(i) = File.Combine(strLinePath, strLineName)
+					End If
+				End If
+			
+			End If
+	    End If
+	Next 
+	Dim recentFiles As List 
+	recentFiles.Initialize
+	recentFiles.AddAll(subMenuRecentFileNames)
+	'Add a separator first
+	RecentItemsAddSeparator(0)
+	'Add the list of files
+	For i = 0 To recentFiles.Size - 1
+		If subMenuRecentFilePath(i) <> "" And subMenuRecentFileNames(i) <> "" Then
+		    AddRecentItem(0, subMenuRecentFilePath(i), subMenuRecentFileNames(i))
+		End If
+	Next
+End Sub
+
+'Not implemented yet, will be later today.
+Sub RemoveRecentItems(menuidx As Int, recentfile As String)
+	Dim filesmenu As Menu = MenuBar1.Menus.Get(menuidx)
+	For i = 0 To filesmenu.MenuItems.Size - 1
+		Dim mi As MenuItem = filesmenu.MenuItems.Get(i)
+		'handle null entries, like the separators
+		If mi.Text <> Null Then 
+			If mi.Text.EqualsIgnoreCase(recentfile) Then 
+				filesmenu.MenuItems.RemoveAt(i)
+				Exit
+			End If
+		End If
+	Next
+End Sub
+
+'Handle the recent files menu actions
+'from rwblinn, worked perfectly
+Sub RecentFilesMenu_Action
+    Dim recent As MenuItem =Sender
+	Process_Import(File.GetFileParent(recent.Tag), File.GetName(recent.Tag))
+End Sub
+
+'from rwblinn
+'Adds a separator menu item
+'Example call: AddMenuSeparator(MenuBar1, 0) where 0 is the first menu item
+Sub RecentItemsAddSeparator(menuidx As Int)
+	Dim joSepMi As JavaObject
+	joSepMi.InitializeNewInstance("javafx.scene.control.SeparatorMenuItem", Null)
+    Dim mnu As Menu = MenuBar1.Menus.Get(menuidx)
+    mnu.MenuItems.Add(joSepMi)
+End Sub
+
+
+
